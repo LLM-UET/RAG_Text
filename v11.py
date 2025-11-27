@@ -21,6 +21,7 @@ TOP_K = 5
 CONFIDENCE_THRESHOLD = 1.8
 PATH = "viettel.csv"
 
+
 class RAG:
     
     def __init__(
@@ -294,7 +295,7 @@ def load_csv(path: str) -> pd.DataFrame:
 if __name__ == "__main__":
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
-    
+
     # Initialize RAG system
     rag = RAG(
         model_name="gemini-2.0-flash",
@@ -321,19 +322,11 @@ if __name__ == "__main__":
         print(f"QUESTION: {q}")
         print("-"*80)
         
-        # Try reasoning first
+        # Test vectordb only
         try:
-            context = rag.query_reasoning(chat_history="", query=q)
-            print(f"[REASONING] Success!")
-            print(f"Result table:\n{context[:500]}...")
+            context = rag.query_vectordb(chat_history="", query=q)
+            print(f"[VECTORDB] Success!")
+            print(f"Context:\n{context}\n")
         except Exception as e:
-            print(f"[REASONING] Failed: {e}")
-            
-            # Fallback to vectordb
-            try:
-                context = rag.query_vectordb(chat_history="", query=q)
-                print(f"[VECTORDB] Success!")
-                print(f"Context preview:\n{context[:500]}...")
-            except Exception as e2:
-                print(f"[VECTORDB] Failed: {e2}")
-                print("Answer: Tôi không biết - vui lòng liên hệ tổng đài 18001090")
+            print(f"[VECTORDB] Failed: {e}")
+            print("Answer: Tôi không biết - vui lòng liên hệ tổng đài 18001090")

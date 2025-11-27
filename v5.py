@@ -14,6 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 from sentence_transformers import CrossEncoder
+from dotenv import load_dotenv
 
 def load_service_csv(path: str):
     docs = []
@@ -261,8 +262,8 @@ def make_qa_chain(vectorstore, model_name="gemini-2.0-flash", temperature=0.0, u
     return answer_query
 
 if __name__ == "__main__":
-    # os.environ["GOOGLE_API_KEY"] = "AIzaSyBbRJTcdz6r-o7o0LumupM2FT4nvPtXLiY"
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyAGFAp3QFU55ktoGn2-5ZY4jb3xFK_HTrs"
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
     docs = load_service_csv("viettel.csv")
     chunks_docs = chunk_documents(docs)
     # print(docs)

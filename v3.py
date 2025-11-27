@@ -12,6 +12,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from sentence_transformers import CrossEncoder
+from dotenv import load_dotenv
 
 def load_service_csv(path: str):
     docs = []

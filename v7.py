@@ -16,6 +16,7 @@ from sentence_transformers import CrossEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import re
+from dotenv import load_dotenv
 
 def load_service_csv(path: str):
     docs = []
@@ -308,7 +309,8 @@ def make_qa_chain(vectorstore, model_name="gemini-2.0-flash", temperature=0.0, u
 
 
 if __name__ == "__main__":
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyBbRJTcdz6r-o7o0LumupM2FT4nvPtXLiY"
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
     docs = load_service_csv("viettel.csv")
     # print(docs)
     vect = build_vectorstore(docs, hybrid=True)

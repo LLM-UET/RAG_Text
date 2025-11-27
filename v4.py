@@ -15,6 +15,8 @@ from sentence_transformers import CrossEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import re
+from dotenv import load_dotenv
+
 
 def load_service_csv(path: str):
     docs = []
