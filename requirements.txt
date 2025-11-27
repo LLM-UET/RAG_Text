@@ -1,0 +1,23 @@
+pandas>=1.5
+numpy>=1.24
+
+sentence-transformers>=2.2.2
+transformers>=4.30.0
+
+torch>=2.0.0
+
+langchain>=0.0.280
+langchain-community>=0.0.16
+
+chromadb>=0.3.29
+
+tiktoken>=0.4.0
+
+
+google-generative-ai>=0.6.0
+langchain-google-genai>=0.0.3
+
+python-dotenv>=1.0.0
+
+scikit-learn>=1.2
+faiss-cpu>=1.7; platform_system == "Linux"  # optional, speeds up similarity search on Linux
