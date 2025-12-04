@@ -6,7 +6,7 @@ import numpy as np
 
 from .rag_resource import RAGResource
 from .rag_reasoning import ReasoningDataQueryEngine
-from ..common import RWResource
+from ..common import RWResource, log_debug
 
 from dataclasses import dataclass
 @dataclass(frozen=True)
@@ -15,15 +15,27 @@ class RAGResourceEngines:
     vectorstore: Chroma
     reasoning_engine: ReasoningDataQueryEngine
 
+INDEXED_FIELDS = ['Nhà mạng', 'Mã dịch vụ']
 
 class RAGResourceCollection:
-    def __init__(self, embeddings: Embeddings, persist_dir: str | None):
+    def __init__(self, embeddings: Embeddings, persist_dir: str):
         self.embeddings = embeddings
         self.persist_dir = persist_dir
+        
+        df = pd.DataFrame(columns=INDEXED_FIELDS)
+        try:
+            with open(f"{persist_dir}/dataframe.parquet", "rb") as f:
+                df = pd.read_parquet(f)
+        except Exception as e:
+            log_debug(f"[RAG] Failed to load persisted dataframe: {e}")
+        
+        df = df.drop_duplicates(subset=INDEXED_FIELDS, keep="first")
+        df.set_index(INDEXED_FIELDS, inplace=True, drop=False)
+
         self.resource_engines_locked = RWResource(
             RAGResourceEngines(
                 vectorstore=Chroma(embedding_function=embeddings, persist_directory=persist_dir),
-                reasoning_engine=ReasoningDataQueryEngine(df=pd.DataFrame(), embedder=lambda x: np.array(self.embeddings.embed_query(x))),
+                reasoning_engine=ReasoningDataQueryEngine(df=df, embedder=lambda x: np.array(self.embeddings.embed_query(x))),
             )
         )
 
@@ -39,20 +51,26 @@ class RAGResourceCollection:
     
     def _rebuild_indexes(self):
         chunks: list[Document] = []
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=INDEXED_FIELDS)
 
         with self.source_to_resource_locked.read() as source_to_resource:
             for resource in source_to_resource.values():
                 chunks.extend(resource.chunks)
                 df = pd.concat([df, resource.df], ignore_index=True)
 
-        reasoning_engine = ReasoningDataQueryEngine(
-            df=df,
-            embedder=lambda x: np.array(self.embeddings.embed_query(x)),
-        )
-
         with self.resource_engines_locked.write() as w:
             vectorstore = w.value.vectorstore
+            reasoning_engine = w.value.reasoning_engine
+
+            df = pd.concat([reasoning_engine.table.to_df(), df], ignore_index=True)
+            df.drop_duplicates(subset=INDEXED_FIELDS, keep="first", inplace=True)
+            df.set_index(INDEXED_FIELDS, inplace=True, drop=False)
+
+            reasoning_engine = ReasoningDataQueryEngine(
+                df=df,
+                embedder=lambda x: np.array(self.embeddings.embed_query(x)),
+            )
+            df.to_parquet(f"{self.persist_dir}/dataframe.parquet")
 
             doc_ids: list[str] = []
             for doc in chunks:

@@ -13,7 +13,7 @@ from .rag_resource import RAGResource
 from .rag_resource_collection import RAGResourceCollection
 from ..llm import GeminiLLM
 from ..common import log_debug
-
+from huggingface_hub import snapshot_download
 
 import pandas as pd
 from typing import Optional
@@ -27,10 +27,21 @@ DEBUG = True
 # default config
 FETCH_K = 12
 TOP_K = 5 
-CONFIDENCE_THRESHOLD = 1.8
 CHUNK_SIZE = 1024
 CHUNK_OVERLAP = 100
 DOCUMENT_SEPARATOR = "\n---\n"
+
+from typing import Any
+import math
+def is_value_present(x: Any):
+    """Check if the value is present and not NaN"""
+    return (
+        x is not None
+        and x != ""
+        and x != "nan"
+        and x != "None"
+        and (not isinstance(x, float) or not math.isnan(x))
+    )
 
 class RAG:
     """
@@ -58,7 +69,6 @@ class RAG:
         temperature: float = 0.0,
         fetch_k: int = FETCH_K,
         top_k: int = TOP_K,
-        confidence_threshold: float = CONFIDENCE_THRESHOLD,
         persist_dir: str = "chroma_db",
         chunk_size: int = CHUNK_SIZE,
         chunk_overlap: int = CHUNK_OVERLAP,
@@ -68,7 +78,6 @@ class RAG:
         self.temperature = temperature
         self.fetch_k = fetch_k
         self.top_k = top_k
-        self.confidence_threshold = confidence_threshold
         self.persist_dir = persist_dir
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -93,9 +102,22 @@ class RAG:
         )
 
         log_debug(f"[RAG] Initializing embeddings...")
-        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+        if not os.path.exists("embeddings_model"):
+            snapshot_download(
+                repo_id="sentence-transformers/all-mpnet-base-v2",
+                local_dir="embeddings_model",
+                local_dir_use_symlinks=False
+            )
+        self.embeddings = HuggingFaceEmbeddings(model_name="embeddings_model")
+
         log_debug(f"[RAG] Initializing reranker...")
-        self.reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        if not os.path.exists("reranker_model"):
+            snapshot_download(
+                repo_id="cross-encoder/ms-marco-MiniLM-L-6-v2",
+                local_dir="reranker_model",
+                local_dir_use_symlinks=False
+            )
+        self.reranker = CrossEncoder("reranker_model")
         
         log_debug(f"[RAG] Initializing RAGResourceCollection...")
         self.rag_resource_collection = RAGResourceCollection(
@@ -154,10 +176,9 @@ class RAG:
                 log_debug(f"  {doc.metadata.get('service_code')} -> {sc:.4f}")
         
         # Check confidence threshold
-        top_score = float(scored_sorted[0][1]) if scored_sorted else 0.0
-        if top_score < self.confidence_threshold:
-            # TODO: What is this?
-            raise Exception(f"Top score {top_score:.4f} below threshold {self.confidence_threshold}")
+        # top_score = float(scored_sorted[0][1]) if scored_sorted else 0.0
+        # if top_score < self.confidence_threshold:
+        #     raise Exception(f"Top score {top_score:.4f} below threshold {self.confidence_threshold}")
         
         # Build context from top_k documents (already sliced to top_k above)
         top_docs = [doc for doc, _ in scored_sorted]
@@ -165,9 +186,14 @@ class RAG:
         for d in top_docs:
             src = d.metadata.get("source", "unknown")
             code = d.metadata.get("service_code", "")
-            context_sections.append(f"[source: {src} | service_code: {code}]\n{d.page_content}")
+            context_sections.append(f"Nhà mạng: {src} ; tên gói cước: {code} ;\n{d.page_content}")
         
         context = "\n---\n".join(context_sections)
+        context = (
+            "Dưới đây liệt kê một số thông tin liên quan. Hãy sử dụng thông tin này để trả lời câu hỏi của người dùng một cách chính xác và ngắn gọn.\n"
+            + "Nếu không tìm thấy thông tin liên quan, cần hiểu rằng bạn không thể trả lời câu hỏi này.\n"
+            + "\n" + context
+        )
         return context
     
     def query_reasoning(self, chat_history: str, query: str) -> str:
@@ -198,14 +224,35 @@ class RAG:
         if not result_table:
             raise Exception("Query execution trả về bảng rỗng")
         
-        # Convert table to markdown
-        try:
-            table_md = result_table.to_df().to_markdown(index=False)
-        except:
-            table_md = str(result_table)
-        
-        return table_md
+        queryObjectInterpretation = query_object.interpret(entity_name="gói cước")
+        context = f"""
+            Đã xác định được ngữ cảnh phù hợp. Các gói cước mà người dùng mong muốn là: {queryObjectInterpretation}
+            Cụ thể, dưới đây là tất cả các gói cước phù hợp với yêu cầu của người dùng. Không còn gói cước nào khác.
+
+
+            {"\n---\n".join(
+                self._convert_df_to_text(result_table.to_df())
+            )}
+        """
+
+        return '\n'.join(line.strip() for line in context.split('\n'))
     
+    def _convert_df_to_text(self, df: pd.DataFrame) -> list[str]:
+        texts: list[str] = []
+        for _, row in df.iterrows():
+            row_data = list(
+                (key, value)
+                for (key, value) in row.items()
+                if is_value_present(value)
+            )
+            content = (
+                "\n".join((f"{key}: {value}" for key, value in row_data))
+                + "\n---\n"
+            )
+            texts.append(content)
+        
+        return texts
+
     def _get_reasoning_query(self, chat_history: str, question: str) -> Optional[str]:
         """
         Sử dụng LLM để sinh pseudo-SQL query từ câu hỏi tự nhiên.
