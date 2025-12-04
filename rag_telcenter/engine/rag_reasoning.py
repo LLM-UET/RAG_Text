@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import re
 from datascience import * # type: ignore
-from typing import Literal, Callable
+from typing import Callable
+from ..common import log_debug
 
 def cosine_similarity(a, b):
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
@@ -160,14 +161,14 @@ class ReasoningDataQueryEngine:
             result_table = Table().from_df(result_df)
             return result_table
         except Exception as e:
-            print(f"Error applying query: {e}")
+            log_debug(f"Error applying query: {e}")
             return Table()
     
     def _filter_by_expression(self, table: Table, expression: tuple[str, str, str]):
         operator, lhs, _rhs = expression
 
         if lhs not in table.labels:
-            print(f"NOTE: Column '{lhs}' not found in the table, whose columns are {table.labels}")
+            log_debug(f"NOTE: Column '{lhs}' not found in the table, whose columns are {table.labels}")
             return table
 
         if operator == "REACHES":
