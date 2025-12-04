@@ -189,7 +189,16 @@ class ReasoningDataQueryEngine:
         else:
             rhs = self._normalize_rhs(_rhs, table.column(lhs))
             if operator == "=":
-                return table.where(lhs, are.equal_to(rhs))
+                if isinstance(rhs, str):
+                    operator = "CONTAINS"
+                else:
+                    return table.where(lhs, are.equal_to(rhs))
+            
+            if operator == "CONTAINS":
+                t = table.with_column(
+                    "_P_relevance", self._compute_similarity_vector(str(rhs), [str(x) for x in table.column(lhs)])
+                ).sort("_P_relevance", descending=True).drop("_P_relevance").take(np.arange(0, min(table.num_rows, 5)))
+                return t
             elif operator == "<=":
                 return table.where(lhs, are.below_or_equal_to(rhs))
             elif operator == ">=":
@@ -200,11 +209,6 @@ class ReasoningDataQueryEngine:
                 return table.where(lhs, are.above(rhs))
             elif operator == "!=":
                 return table.where(lhs, are.not_equal_to(rhs))
-            elif operator == "CONTAINS":
-                t = table.with_column(
-                    "_P_relevance", self._compute_similarity_vector(str(rhs), [str(x) for x in table.column(lhs)])
-                ).sort("_P_relevance", descending=True).drop("_P_relevance").take(np.arange(0, min(table.num_rows, 5)))
-                return t
             else:
                 raise ValueError(f"Invalid operator: {operator}")
     
