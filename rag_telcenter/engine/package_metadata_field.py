@@ -26,6 +26,12 @@ class PackageMetadataField:
 """
 PACKAGE_FIELDS = [
     PackageMetadataField(
+        field_name="Nhà mạng",
+        field_description="Tên nhà mạng cung cấp gói cước, ví dụ 'Viettel', 'Mobifone', 'Vinaphone'.",
+        field_type="text",
+    ),
+    
+    PackageMetadataField(
         field_name="Mã dịch vụ",
         field_description=" Mã định danh duy nhất của gói cước, ví dụ 'SD70'.",
         field_type="text",
@@ -102,3 +108,10 @@ PACKAGE_FIELDS = [
         field_type="text",
     ),
 ]
+
+import pyarrow as pa
+
+PACKAGE_SCHEMA = pa.schema([
+    pa.field(field.field_name, pa.float32() if field.field_type == "number" else pa.string())
+    for field in PACKAGE_FIELDS
+])

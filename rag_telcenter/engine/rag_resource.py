@@ -58,21 +58,8 @@ class RAGResource:
         self.df.columns = [c.strip() for c in self.df.columns]
         self.df = self.df.fillna("")
 
-        fields = PACKAGE_FIELDS
-        for column in self.df.columns:
-            matching_fields = [f for f in fields if f.field_name == column]
-            if matching_fields:
-                field = matching_fields[0]
-                if field.field_type == "number":
-                    self.df[column].apply(
-                        lambda x: int(x) if str(x).strip() != "" else 0
-                    )
-                else:
-                    self.df[column].apply(
-                        lambda x: str(x).strip() if str(x).strip() != "" else "không có"
-                    )
-                self.df.rename(columns={column: field.field_name}, inplace=True)
-        
+        self.df =self.normalize_inplace(self.df)
+
         docs = self._df_to_documents(self.df, source)
         chunks = self._chunk_documents(splitter, docs)
         if DEBUG:
@@ -80,3 +67,33 @@ class RAGResource:
         # self.docs = docs
         self.chunks = chunks
         self.df['Nhà mạng'] = source
+    
+    @staticmethod
+    def normalize_inplace(df: pd.DataFrame) -> pd.DataFrame:
+        fields = PACKAGE_FIELDS
+
+        for field in fields:
+            field_name = field.field_name.strip()
+            if field_name in df.columns:
+                column = field_name
+                if field.field_type == "number":
+                    df[column] = df[column].apply(
+                        lambda x: float(str(x).strip()) if str(x).strip() != "" else 0
+                    )
+                    df[column] = df[column].astype(float)
+                else:
+                    df[column] = df[column].apply(
+                        lambda x: str(x).strip() if str(x).strip() != "" else "không có"
+                    )
+                    df[column] = df[column].astype(str)
+                df.rename(columns={column: field.field_name}, inplace=True)
+            else:
+                # add missing column
+                if field.field_type == "number":
+                    df[field.field_name] = 0.0
+                    df[field.field_name] = df[field.field_name].astype(float)
+                else:
+                    df[field.field_name] = "không có"
+                    df[field.field_name] = df[field.field_name].astype(str)
+        
+        return df

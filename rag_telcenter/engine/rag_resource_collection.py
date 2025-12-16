@@ -4,6 +4,7 @@ from langchain_core.documents import Document
 import pandas as pd
 import numpy as np
 
+from .package_metadata_field import PACKAGE_SCHEMA
 from .rag_resource import RAGResource
 from .rag_reasoning import ReasoningDataQueryEngine
 from ..common import RWResource, log_debug
@@ -29,6 +30,7 @@ class RAGResourceCollection:
         except Exception as e:
             log_debug(f"[RAG] Failed to load persisted dataframe: {e}")
         
+        df = RAGResource.normalize_inplace(df)
         df = df.drop_duplicates(subset=INDEXED_FIELDS, keep="first")
         df.set_index(INDEXED_FIELDS, inplace=True, drop=False)
 
@@ -52,6 +54,7 @@ class RAGResourceCollection:
     def _rebuild_indexes(self):
         chunks: list[Document] = []
         df = pd.DataFrame(columns=INDEXED_FIELDS)
+        df = RAGResource.normalize_inplace(df)
 
         with self.source_to_resource_locked.read() as source_to_resource:
             for resource in source_to_resource.values():
@@ -70,7 +73,13 @@ class RAGResourceCollection:
                 df=df,
                 embedder=lambda x: np.array(self.embeddings.embed_query(x)),
             )
-            df.to_parquet(f"{self.persist_dir}/dataframe.parquet")
+            df = RAGResource.normalize_inplace(df)
+            print(df)
+            print("=========================")
+            for col in df.columns:
+                print(f"{col}: {df[col].dtype}")
+            print("=========================")
+            df.to_parquet(f"{self.persist_dir}/dataframe.parquet", schema=PACKAGE_SCHEMA)
 
             doc_ids: list[str] = []
             for doc in chunks:

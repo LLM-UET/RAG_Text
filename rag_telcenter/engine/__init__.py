@@ -270,7 +270,7 @@ class RAG:
         {self.package_fields_interpretation}
 
         Chú ý 1: Nếu người dùng hỏi dung lượng thì cần chọn các cột sau: "4G tốc độ tiêu chuẩn/ngày", "4G tốc độ cao/ngày", "4G tốc độ tiêu chuẩn/chu kỳ", "4G tốc độ cao/chu kỳ", "Chi tiết".
-        Chú ý 2: Bạn phải luôn SELECT các cột sau trong mọi trường hợp: "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết".
+        Chú ý 2: Bạn phải luôn SELECT các cột sau trong mọi trường hợp: "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết".
         Chú ý 3: Nếu người dùng nhờ tư vấn cho điện thoại cục gạch, nghe gọi ít hoặc ít sử dụng mạng... thì bạn cần hiểu là phải tìm gói cước rẻ nhất.
 
         Cú pháp truy cập lấy dữ liệu từ cơ sở dữ liệu như sau:
@@ -305,23 +305,28 @@ class RAG:
         Ví dụ 1:
         - Lịch sử chat: Không có
         - Câu hỏi: Gói cước nào có giá rẻ nhất?
-        - Trả lời: SELECT "Mã dịch vụ", "Giá (VNĐ)" WHERE "Giá (VNĐ)" REACHES MIN
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Giá (VNĐ)" WHERE "Giá (VNĐ)" REACHES MIN
+
         Ví dụ 2:
         - Lịch sử chat: Người dùng hỏi giá gói cước rẻ nhất, trợ lý ảo trả lời gói SD70 (70.000đ/tháng, 30GB) là rẻ nhất.
         - Câu hỏi: Làm thế nào để đăng ký gói đấy?
-        - Trả lời: SELECT "Chi tiết", "Cú pháp" và "Mã dịch vụ" WHERE "Mã dịch vụ" = "SD70"
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
+        
         Ví dụ 3:
         - Lịch sử chat: Người dùng hỏi về cách kiểm tra số dư tài khoản, trợ lý ảo trả lời cần bấm *101# để kiểm tra.
         - Câu hỏi: Em ơi thế sao thuê bao của anh cứ tự trừ tiền thế nhỉ, em xem giúp anh số dư còn bao nhiêu với
         - Trả lời: IMPOSSIBLE
+        
         Ví dụ 4:
         - Lịch sử chat: Không có
         - Câu hỏi: Ừ thế xem giúp anh gói nào để anh lướt mạng thả ga đi, một ngày xem phim đã tốn mấy gigabyte rồi
-        - Trả lời: SELECT "Mã dịch vụ", "4G tốc độ tiêu chuẩn/ngày" WHERE "Chi tiết" CONTAINS "lướt mạng thả ga" AND "4G tốc độ tiêu chuẩn/ngày" REACHES MIN
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "4G tốc độ tiêu chuẩn/ngày" WHERE "Chi tiết" CONTAINS "lướt mạng thả ga" AND "4G tốc độ tiêu chuẩn/ngày" REACHES MIN
+        
         Ví dụ 5:
         - Lịch sử chat: Không có
         - Câu hỏi: À em ơi bên em có gói nào rẻ mà lướt mạng thoải mái không, chứ một ngày anh lướt mạng hết mấy gigabyte rồi
-        - Trả lời: SELECT "Mã dịch vụ", "4G tốc độ tiêu chuẩn/ngày" WHERE "Chi tiết" CONTAINS "lướt mạng thoải mái" AND "4G tốc độ tiêu chuẩn/ngày" REACHES MIN AND "Giá (VNĐ)" REACHES MIN
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "4G tốc độ tiêu chuẩn/ngày" WHERE "Chi tiết" CONTAINS "lướt mạng thoải mái" AND "4G tốc độ tiêu chuẩn/ngày" REACHES MIN AND "Giá (VNĐ)" REACHES MIN
+        
         Ví dụ 6:
         - Lịch sử chat:
             Trợ lý ảo gợi ý gói 6MXH100 (180GB/tháng) và 12MXH100 (360GB/tháng) vì phù hợp nhu cầu xem phim nhiều.
@@ -330,8 +335,15 @@ class RAG:
             Người dùng muốn được tư vấn gói 70.000đ/tháng.
             Trợ lý ảo xác nhận gói SD70 (70.000đ/tháng, 30GB) phù hợp yêu cầu, nhưng lưu ý 30GB có thể không đủ cho nhu cầu xem phim nhiều. Gợi ý tham khảo các gói data lớn hơn nếu cần.
         - Câu hỏi: À vậy gói này đăng ký thế nào em nhỉ?
-        - Trả lời: SELECT "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
 
+        Ví dụ 7:
+        - Lịch sử chat: Không có
+        - Câu hỏi: Bên Viettel có gói cước nào rẻ nhất?
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Giá (VNĐ)" WHERE "Nhà mạng" = "Viettel" AND "Giá (VNĐ)" REACHES MIN
+
+        ---
+        
         Hãy trả lời truy vấn dưới đây:
         - Lịch sử chat: {chat_history}
         
