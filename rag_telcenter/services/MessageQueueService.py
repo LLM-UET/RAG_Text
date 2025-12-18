@@ -16,6 +16,7 @@ class MessageQueueService:
         if not rabbitmq_url:
             rabbitmq_url = os.getenv("RABBITMQ_URL", None)
         rabbitmq_url = rabbitmq_url or "amqp://guest:guest@localhost:5672/"
+        print(f"[MessageQueueService] Connecting to RabbitMQ at {rabbitmq_url}")
         self.rabbitmq_url = rabbitmq_url
 
         params = pika.URLParameters(self.rabbitmq_url)
