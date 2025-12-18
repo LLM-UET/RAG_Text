@@ -270,7 +270,7 @@ class RAG:
         {self.package_fields_interpretation}
 
         Chú ý 1: Nếu người dùng hỏi dung lượng thì cần chọn các cột sau: "4G tốc độ tiêu chuẩn/ngày", "4G tốc độ cao/ngày", "4G tốc độ tiêu chuẩn/chu kỳ", "4G tốc độ cao/chu kỳ", "Chi tiết".
-        Chú ý 2: Bạn phải luôn SELECT các cột sau trong mọi trường hợp: "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết".
+        Chú ý 2: Bạn phải luôn SELECT các cột sau trong mọi trường hợp: "Nhà mạng", "Mã dịch vụ", "Cú pháp đăng ký", "Giá (VNĐ)", "Chi tiết".
         Chú ý 3: Nếu người dùng nhờ tư vấn cho điện thoại cục gạch, nghe gọi ít hoặc ít sử dụng mạng... thì bạn cần hiểu là phải tìm gói cước rẻ nhất.
 
         Cú pháp truy cập lấy dữ liệu từ cơ sở dữ liệu như sau:
@@ -297,7 +297,7 @@ class RAG:
 
         Trong trường hợp bạn có thể trả lời câu hỏi của người dùng bằng cách tạo một truy vấn dữ liệu như trên, hãy trả về truy vấn.
         Nếu không tạo được truy vấn nhưng câu hỏi vẫn thuộc phạm vi thông tin gói cước, sim thẻ, nhà mạng, giá cả... thì trả về:
-            SELECT "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết" WHERE "Chi tiết" CONTAINS "<các từ khóa trong câu hỏi của người dùng>"
+            SELECT "Mã dịch vụ", "Cú pháp đăng ký", "Giá (VNĐ)", "Chi tiết" WHERE "Chi tiết" CONTAINS "<các từ khóa trong câu hỏi của người dùng>"
         Nếu câu hỏi hoàn toàn nằm ngoài phạm vi những thông tin gói cước, sim thẻ... như trên thì trả về IMPOSSIBLE.
 
         Hãy nghiên cứu các ví dụ về truy vấn và câu trả lời dưới đây, từ đó trả lời truy vấn đầu vào được đưa ra ở cuối.
@@ -310,7 +310,7 @@ class RAG:
         Ví dụ 2:
         - Lịch sử chat: Người dùng hỏi giá gói cước rẻ nhất, trợ lý ảo trả lời gói SD70 (70.000đ/tháng, 30GB) là rẻ nhất.
         - Câu hỏi: Làm thế nào để đăng ký gói đấy?
-        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp đăng ký", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
         
         Ví dụ 3:
         - Lịch sử chat: Người dùng hỏi về cách kiểm tra số dư tài khoản, trợ lý ảo trả lời cần bấm *101# để kiểm tra.
@@ -335,7 +335,7 @@ class RAG:
             Người dùng muốn được tư vấn gói 70.000đ/tháng.
             Trợ lý ảo xác nhận gói SD70 (70.000đ/tháng, 30GB) phù hợp yêu cầu, nhưng lưu ý 30GB có thể không đủ cho nhu cầu xem phim nhiều. Gợi ý tham khảo các gói data lớn hơn nếu cần.
         - Câu hỏi: À vậy gói này đăng ký thế nào em nhỉ?
-        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp", "Giá (VNĐ)", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
+        - Trả lời: SELECT "Nhà mạng", "Mã dịch vụ", "Cú pháp đăng ký", "Giá (VNĐ)", "Chi tiết" WHERE "Mã dịch vụ" = "SD70"
 
         Ví dụ 7:
         - Lịch sử chat: Không có
