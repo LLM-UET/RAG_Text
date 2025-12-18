@@ -56,7 +56,11 @@ class Controller:
             }
         }
 
-        self.mq.publish_message(self.response_queue_name, response)
+        print(f"[Controller] Publishing message into queue {self.response_queue_name}: {response}")
+
+        mq = self.mq.clone()
+        mq.publish_message(self.response_queue_name, response)
+        print(f"[Controller] Published message into queue {self.response_queue_name} ____________")
     
     def handle_message_with_id(self, id: str, message: dict):
         method_name = message.get("method", "")

@@ -236,9 +236,11 @@ class RAG:
                 self._convert_df_to_text(result_table.to_df())
             )}
         """
-        log_debug(f"[query_reasoning] Final context length: {len(context)} characters")
+        final_context = '\n'.join(line.strip() for line in context.split('\n'))
 
-        return '\n'.join(line.strip() for line in context.split('\n'))
+        log_debug(f"[query_reasoning] Final context:\n{final_context:1000} [...]")
+
+        return final_context
     
     def _convert_df_to_text(self, df: pd.DataFrame) -> list[str]:
         texts: list[str] = []
