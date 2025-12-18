@@ -1,7 +1,7 @@
 from ..engine import RAG
 import pandas as pd
 from ..services.MessageQueueService import MessageQueueService
-from typing import Any
+from typing import Any, Callable
 import threading
 
 class RAGRPCServer:
@@ -25,15 +25,10 @@ class RAGRPCServer:
         return context
 
 class Controller:
-    def __init__(self, mq: MessageQueueService, response_queue_name: str, rag_rpc_server: RAGRPCServer) -> None:
+    def __init__(self, method_map: dict[str, Callable], mq: MessageQueueService, response_queue_name: str) -> None:
         self.mq = mq
         self.response_queue_name = response_queue_name
-        self.rag_rpc_server = rag_rpc_server
-        self.method_map = {
-            "update_dataframe": self.rag_rpc_server.update_dataframe,
-            "query_vectordb": self.rag_rpc_server.query_vectordb,
-            "query_reasoning": self.rag_rpc_server.query_reasoning,
-        }
+        self.method_map = method_map
 
 
     def handle_message(self, message: dict):
@@ -84,14 +79,16 @@ class Controller:
         return method(*args, **kwargs)
 
 class Server:
-    def __init__(self) -> None:
+    def __init__(self, method_map: dict[str, Callable], request_queue_name: str, response_queue_name: str) -> None:
         self.mq_service = MessageQueueService()
         self.mq_lock = threading.Lock()
-        self.request_queue_name = "telcenter_rag_text_requests"
-        self.response_queue_name = "telcenter_rag_text_responses"
+
+        self.request_queue_name = request_queue_name
+        self.response_queue_name = response_queue_name
+        self.method_map = method_map
+        
         self.threads: list[threading.Thread] = []
         self.num_threads = 4
-        self.rag_rpc_server = RAGRPCServer()
     
     def start(self):
         self.threads = [
@@ -110,13 +107,33 @@ class Server:
             mq = self.mq_service.clone()
         mq.declare_queue(self.request_queue_name)
         mq.declare_queue(self.response_queue_name)
-        controller = Controller(mq, self.response_queue_name, self.rag_rpc_server)
+        controller = Controller(self.method_map, mq, self.response_queue_name)
         mq.register_callback(self.request_queue_name, controller.handle_message)
         mq.start_consuming()
         
 
 
 def main():
-    server = Server()
-    server.start()
-    server.wait()
+    rag_rpc_server = RAGRPCServer()
+
+    rag_query_server = Server(
+        method_map={
+            "query_vectordb": rag_rpc_server.query_vectordb,
+            "query_reasoning": rag_rpc_server.query_reasoning,
+        },
+        request_queue_name="telcenter_rag_text_requests",
+        response_queue_name="telcenter_rag_text_responses",
+    )
+    rag_query_server.start()
+
+    rag_update_server = Server(
+        method_map={
+            "update_dataframe": rag_rpc_server.update_dataframe,
+        },
+        request_queue_name="telcenter_rag_update_requests",
+        response_queue_name="telcenter_rag_update_responses",
+    )
+    rag_update_server.start()
+
+    rag_query_server.wait()
+    rag_update_server.wait()
