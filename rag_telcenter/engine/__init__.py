@@ -222,8 +222,10 @@ class RAG:
             log_debug(f"[query_reasoning] Result table shape: {result_table}")
         
         if not result_table:
+            log_debug(f"[query_reasoning] Result table is empty")
             raise Exception("Query execution trả về bảng rỗng")
         
+        log_debug(f"[query_reasoning] Interpreting query object...")
         queryObjectInterpretation = query_object.interpret(entity_name="gói cước")
         context = f"""
             Đã xác định được ngữ cảnh phù hợp. Các gói cước mà người dùng mong muốn là: {queryObjectInterpretation}
@@ -234,6 +236,7 @@ class RAG:
                 self._convert_df_to_text(result_table.to_df())
             )}
         """
+        log_debug(f"[query_reasoning] Final context length: {len(context)} characters")
 
         return '\n'.join(line.strip() for line in context.split('\n'))
     
